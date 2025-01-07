@@ -1,10 +1,12 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./LoginPage.css";
 
 const LoginPage = ({ onLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,9 +33,18 @@ const LoginPage = ({ onLogin }) => {
         body: JSON.stringify({ email, password }),
       });
 
+      if (response.status === 404) {
+        setErrorMessage("Uživatel nenalezen");
+        return;
+      }
+
+      if (response.status === 401) {
+        setErrorMessage("Špatné heslo");
+        return;
+      }
+
       if (!response.ok) {
-        const errorData = await response.json();
-        setErrorMessage(errorData.message || "Chyba při přihlášení");
+        setErrorMessage("Chyba při přihlášení");
         return;
       }
 
@@ -41,7 +52,12 @@ const LoginPage = ({ onLogin }) => {
       console.log("Login successful:", data);
 
       // Zavolání onLogin s předáním dat uživatele
-      onLogin({ isAdmin: data.isAdmin, id: data.id, email: data.email });
+      if (onLogin) {
+        onLogin({ isAdmin: data.isAdmin, id: data.id, email: data.email });
+        navigate("/"); // Přesměrování na hlavní stránku
+      } else {
+        console.error("onLogin function is not defined");
+      }
     } catch (error) {
       console.error("Error during login:", error);
       setErrorMessage("Nelze se připojit k serveru");

@@ -9,7 +9,7 @@ const fs = require('fs'); // Import knihovny fs
 require('dotenv').config();
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 5000;
 
 // Middleware pro parsování JSON
 app.use(express.json());
@@ -40,21 +40,17 @@ const runQuery = async (query, params = []) => {
 
 ////////////// USERS ///////////
 
-// add user
-app.post('/users/login', async (req, res) => {
-  console.log('Received request to create user:', req.body); // Add this line
+// Registrace uživatele
+app.post('/users', async (req, res) => {
   const { name, email, password, is_admin } = req.body;
   try {
-    // Check if the email already exists
     const [existingUser] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     if (existingUser.length > 0) {
-      return res.status(400).json({ message: 'Email already exists' });
+      return res.status(400).json({ message: 'Email již existuje' });
     }
 
-    // Hash the password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert the new user into the database
     const [result] = await pool.query(
       'INSERT INTO users (name, email, password, is_admin) VALUES (?, ?, ?, ?)',
       [name, email, hashedPassword, is_admin || false]
@@ -62,81 +58,27 @@ app.post('/users/login', async (req, res) => {
 
     res.status(201).json({ id: result.insertId, name, email });
   } catch (error) {
-    console.log('Error:', error); // Log the error
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Get all users
-app.get('/users/login', async (req, res) => {
-  try {
-    const users = await runQuery('SELECT id, name, email, is_admin FROM users');
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Update a user
-app.put('/users/:id/login', async (req, res) => {
-  const { id } = req.params;
-  const { name, email, password, is_admin } = req.body;
-  try {
-    let query = 'UPDATE users SET name = ?, email = ?, is_admin = ? WHERE id = ?';
-    let values = [name, email, is_admin || false, id];
-
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      query = 'UPDATE users SET name = ?, email = ?, password = ?, is_admin = ? WHERE id = ?';
-      values = [name, email, hashedPassword, is_admin || false, id];
-    }
-
-    const [result] = await runQuery(query, values);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.json({ message: 'User updated' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Delete a user
-app.delete('/users/:id/login', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const [result] = await runQuery('DELETE FROM users WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json({ message: 'User deleted' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Chyba při registraci:', error);
+    res.status(500).json({ message: 'Interní chyba serveru' });
   }
 });
 
 // Přihlášení uživatele
 app.post('/users/login', async (req, res) => {
-  const { email, password } = req.body; // Získání emailu a hesla z požadavku
+  const { email, password } = req.body;
 
   try {
-    // Vyhledej uživatele podle emailu
     const [users] = await pool.query('SELECT * FROM users WHERE email = ?', [email]);
     if (users.length === 0) {
       return res.status(404).json({ message: 'Uživatel nenalezen' });
     }
 
-    const user = users[0]; // Načti prvního uživatele
-
-    // Ověření hesla
+    const user = users[0];
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Špatné heslo' });
     }
 
-    // Úspěšné přihlášení - vrací informace o uživateli
     res.json({
       id: user.id,
       name: user.name,

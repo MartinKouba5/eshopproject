@@ -32,19 +32,24 @@ const Navbar = ({ isLoggedIn, isAdmin, onLogout }) => {
               </li>
             )}
           </ul>
-          {isLoggedIn ? (
-            <form className="d-flex ml-auto">
+          <form className="d-flex ml-auto">
+            <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+              <li className="nav-item">
+                <Link className="nav-link active" to="/Kosik">
+                  Košík
+                </Link>
+              </li>
+            </ul>
+            {isLoggedIn ? (
               <button className="btn btn-info" type="button" onClick={onLogout}>
                 Odhlásit se
               </button>
-            </form>
-          ) : (
-            <form className="d-flex ml-auto">
+            ) : (
               <Link className="btn btn-info" to="/login">
                 Přihlásit se
               </Link>
-            </form>
-          )}
+            )}
+          </form>
         </div>
       </div>
     </nav>
