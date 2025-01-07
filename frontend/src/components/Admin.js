@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import "./Admin.css";
+
 
 const Admin = () => {
   const [name, setName] = useState("");
